@@ -1,0 +1,36 @@
+import socket
+import threading
+
+# IP and port to bind the server
+bind_ip = "0.0.0.0"
+bind_port = 9999
+
+# Create the socket object (IPv4 + TCP)
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server.bind((bind_ip, bind_port))
+server.listen(5)  # max backlog of connections
+
+print(f"[*] Listening on {bind_ip}:{bind_port}")
+
+# Client handler function (runs in a new thread)
+def handle_client(client_socket):
+    try:
+        client_socket.settimeout(5)  # Avoid hanging
+        request = client_socket.recv(1024).decode('utf-8')
+        print(f"[*] Received: {request}", flush=True)
+        client_socket.send(b"ACK!")
+    except socket.timeout:
+        print("[!] Client timed out", flush=True)
+    except Exception as e:
+        print(f"[!] Error: {e}", flush=True)
+    finally:
+        client_socket.close()
+
+# Main loop to accept incoming connections
+while True:
+    client, addr = server.accept()
+    print(f"[*] Accepted connection from: {addr[0]}:{addr[1]}")
+
+    # Start new thread for each client
+    client_handler = threading.Thread(target=handle_client, args=(client,))
+    client_handler.start()
